@@ -15,17 +15,71 @@ VALID_STATUSES = {"Recommended", "Shortlisted", "Shared", "Site Visit Scheduled"
 
 
 def lead_context(db: Session, lead: Lead) -> str:
-    interactions = db.scalars(select(Interaction).where(Interaction.lead_id == lead.id).order_by(Interaction.created_at)).all()
-    matches = db.scalars(select(LeadProperty).where(LeadProperty.lead_id == lead.id).order_by(LeadProperty.match_score.desc()).limit(5)).all()
-    props = {p.id: p for p in db.scalars(select(Property).where(Property.id.in_([m.property_id for m in matches]))).all()} if matches else {}
+    interactions = (
+        db.scalars(
+            select(Interaction)
+            .where(Interaction.lead_id == lead.id)
+            .order_by(Interaction.created_at)
+        )
+        .all()
+    )
+
+    matches = (
+        db.scalars(
+            select(LeadProperty)
+            .where(LeadProperty.lead_id == lead.id)
+            .order_by(LeadProperty.match_score.desc())
+            .limit(5)
+        )
+        .all()
+    )
+
+    props = (
+        {
+            p.id: p
+            for p in db.scalars(
+                select(Property).where(
+                    Property.id.in_([m.property_id for m in matches])
+                )
+            ).all()
+        }
+        if matches
+        else {}
+    )
+
+    interaction_history = [
+        {
+            "type": i.type,
+            "note": i.note,
+        }
+        for i in interactions
+    ]
+
+    matched_properties = [
+        {
+            "code": props[m.property_id].property_code,
+            "project": props[m.property_id].project_name,
+            "price_inr": props[m.property_id].price,
+            "score": m.match_score,
+            "reasons": m.match_reasons,
+            "mismatches": m.mismatch_reasons,
+        }
+        for m in matches
+        if m.property_id in props
+    ]
+
     return (
         f"Lead: {lead.name}\n"
-        f"Current requirements: BHK={lead.bhk}; budget INR={lead.budget}; parking_required={lead.parking_required}; "
-        f"location={lead.location}; timeline={lead.timeline}; property_requirement={lead.property_requirement}\n"
+        f"Current requirements: "
+        f"BHK={lead.bhk}; "
+        f"budget INR={lead.budget}; "
+        f"parking_required={lead.parking_required}; "
+        f"location={lead.location}; "
+        f"timeline={lead.timeline}; "
+        f"property_requirement={lead.property_requirement}\n"
         f"Customer message: {lead.customer_message}\n"
-        f"Analysis: {lead.ai_analysis or 'not analyzed'}\n"
-        f"Interactions: {[{'type': i.type, 'note': i.note} for i in interactions]}\n"
-        f"Matched properties: {[{'code': props[m.property_id].property_code, 'project': props[m.property_id].project_name, 'price_inr': props[m.property_id].price, 'score': m.match_score, 'reasons': m.match_reasons, 'mismatches': m.mismatch_reasons} for m in matches if m.property_id in props]}"
+        f"Interaction history: {interaction_history}\n"
+        f"Matched properties: {matched_properties}"
     )
 
 
