@@ -51,12 +51,47 @@ def _call(system: str, user: str):
 
 
 def analyze_lead(context: str):
-    system = """You analyze a real-estate sales lead. Return ONLY valid JSON with keys summary, intent, key_requirements, objections, recommended_next_action, suggested_response. Use ONLY facts in the supplied context. Never invent age, income, family, profession, availability, property features, preferences, or conversation history. Keep answers concise."""
+    system = """
+You analyze a real-estate sales lead.
+
+Return ONLY a valid JSON object.
+
+The JSON MUST contain exactly these fields:
+
+{
+  "summary": "short summary of the lead",
+  "intent": "customer's buying intent",
+  "key_requirements": ["requirement 1", "requirement 2"],
+  "objections": ["objection 1", "objection 2"],
+  "recommended_next_action": "specific next action for the salesperson",
+  "suggested_response": "short response the salesperson can send to the customer"
+}
+
+Rules:
+- summary must be a string.
+- intent must be a string.
+- key_requirements must ALWAYS be an array of strings.
+- objections must ALWAYS be an array of strings. Use [] if there are no objections.
+- recommended_next_action must be a string.
+- suggested_response must be a string.
+- Use ONLY facts from the supplied context.
+- Never invent age, income, family, profession, availability, property features, preferences, or conversation history.
+- Consider the complete interaction history.
+- When re-analyzing, generate a fresh analysis based on the current lead and latest interactions.
+- Do not copy or rely on a previous AI analysis.
+- Keep the response concise.
+"""
+
     obj = _call(system, context)
+
     try:
         return AIAnalysis.model_validate(obj)
+
     except Exception as exc:
-        raise HTTPException(502, "The AI service returned invalid lead analysis. Please retry.") from exc
+        raise HTTPException(
+            502,
+            "The AI service returned invalid lead analysis. Please retry."
+        ) from exc
 
 
 def extract_changes(current: str, interaction: str):
