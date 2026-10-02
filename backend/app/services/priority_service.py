@@ -227,6 +227,7 @@ def _engagement_score(message: str) -> int:
             "schedule a visit",
             "call me",
             "callback",
+            "send details",
             "send me details",
             "share details",
             "share properties",
@@ -320,8 +321,16 @@ def calculate_dynamic_priority(
         "purchased another property",
         "don't want to buy",
         "do not want to buy",
+        "not interested",
         "not interested anymore",
         "no longer interested",
+        "doesn't want to buy",
+        "does not want to buy",
+        "don't want to purchase",
+        "do not want to purchase",
+        "already bought from another place",
+        "bought from another builder",
+        "purchased from another builder",
     ]):
         return 0, "COLD"
 
