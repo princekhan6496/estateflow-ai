@@ -1,11 +1,90 @@
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSON
-revision='0001';down_revision=None;branch_labels=None;depends_on=None
+
+revision = "0001"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+
 def upgrade():
-    op.create_table('leads',sa.Column('id',sa.Integer,primary_key=True),sa.Column('name',sa.String(120),nullable=False),sa.Column('location',sa.String(120),nullable=False),sa.Column('bhk',JSON,nullable=False),sa.Column('budget',sa.Float,nullable=False),sa.Column('timeline',sa.String(80),nullable=False),sa.Column('parking_required',sa.Boolean,nullable=False),sa.Column('property_requirement',sa.Text,nullable=False),sa.Column('customer_message',sa.Text,nullable=False),sa.Column('priority',sa.String(10),nullable=False),sa.Column('lead_score',sa.Integer,nullable=False),sa.Column('ai_analysis',JSON),sa.Column('created_at',sa.DateTime,nullable=False))
-    op.create_table('properties',sa.Column('id',sa.Integer,primary_key=True),sa.Column('property_code',sa.String(30),unique=True,nullable=False),sa.Column('project_name',sa.String(120),nullable=False),sa.Column('developer',sa.String(120),nullable=False),sa.Column('location',sa.String(120),nullable=False),sa.Column('bhk',sa.Integer,nullable=False),sa.Column('price',sa.Float,nullable=False),sa.Column('carpet_area',sa.Integer,nullable=False),sa.Column('parking_available',sa.Boolean,nullable=False),sa.Column('possession_date',sa.String(50),nullable=False),sa.Column('floor',sa.Integer,nullable=False),sa.Column('total_floors',sa.Integer,nullable=False),sa.Column('amenities',JSON,nullable=False),sa.Column('availability',sa.String(50),nullable=False),sa.Column('description',sa.Text,nullable=False))
-    op.create_table('interactions',sa.Column('id',sa.Integer,primary_key=True),sa.Column('lead_id',sa.Integer,sa.ForeignKey('leads.id',ondelete='CASCADE'),nullable=False),sa.Column('type',sa.String(30),nullable=False),sa.Column('note',sa.Text,nullable=False),sa.Column('ai_extracted_changes',JSON),sa.Column('customer_feedback',sa.Text),sa.Column('created_at',sa.DateTime,nullable=False))
-    op.create_table('lead_properties',sa.Column('id',sa.Integer,primary_key=True),sa.Column('lead_id',sa.Integer,sa.ForeignKey('leads.id',ondelete='CASCADE'),nullable=False),sa.Column('property_id',sa.Integer,sa.ForeignKey('properties.id',ondelete='CASCADE'),nullable=False),sa.Column('match_score',sa.Integer,nullable=False),sa.Column('match_reasons',JSON,nullable=False),sa.Column('mismatch_reasons',JSON,nullable=False),sa.Column('status',sa.String(30),nullable=False),sa.Column('customer_feedback',sa.Text),sa.Column('created_at',sa.DateTime,nullable=False),sa.Column('updated_at',sa.DateTime,nullable=False))
+    op.create_table(
+        "leads",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("name", sa.String(120), nullable=False),
+        sa.Column("location", sa.String(120), nullable=False),
+        sa.Column("bhk", JSON, nullable=False),
+        sa.Column("budget", sa.Float, nullable=False),
+        sa.Column("timeline", sa.String(80), nullable=False),
+        sa.Column("parking_required", sa.Boolean, nullable=False),
+        sa.Column("property_requirement", sa.Text, nullable=False),
+        sa.Column("customer_message", sa.Text, nullable=False),
+        sa.Column("priority", sa.String(10), nullable=False),
+        sa.Column("lead_score", sa.Integer, nullable=False),
+        sa.Column("ai_analysis", JSON),
+        sa.Column("created_at", sa.DateTime, nullable=False),
+    )
+    op.create_table(
+        "properties",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("property_code", sa.String(30), unique=True, nullable=False),
+        sa.Column("project_name", sa.String(120), nullable=False),
+        sa.Column("developer", sa.String(120), nullable=False),
+        sa.Column("location", sa.String(120), nullable=False),
+        sa.Column("bhk", sa.Integer, nullable=False),
+        sa.Column("price", sa.Float, nullable=False),
+        sa.Column("carpet_area", sa.Integer, nullable=False),
+        sa.Column("parking_available", sa.Boolean, nullable=False),
+        sa.Column("possession_date", sa.String(50), nullable=False),
+        sa.Column("floor", sa.Integer, nullable=False),
+        sa.Column("total_floors", sa.Integer, nullable=False),
+        sa.Column("amenities", JSON, nullable=False),
+        sa.Column("availability", sa.String(50), nullable=False),
+        sa.Column("description", sa.Text, nullable=False),
+    )
+    op.create_table(
+        "interactions",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column(
+            "lead_id",
+            sa.Integer,
+            sa.ForeignKey("leads.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("type", sa.String(30), nullable=False),
+        sa.Column("note", sa.Text, nullable=False),
+        sa.Column("ai_extracted_changes", JSON),
+        sa.Column("customer_feedback", sa.Text),
+        sa.Column("created_at", sa.DateTime, nullable=False),
+    )
+    op.create_table(
+        "lead_properties",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column(
+            "lead_id",
+            sa.Integer,
+            sa.ForeignKey("leads.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "property_id",
+            sa.Integer,
+            sa.ForeignKey("properties.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column("match_score", sa.Integer, nullable=False),
+        sa.Column("match_reasons", JSON, nullable=False),
+        sa.Column("mismatch_reasons", JSON, nullable=False),
+        sa.Column("status", sa.String(30), nullable=False),
+        sa.Column("customer_feedback", sa.Text),
+        sa.Column("created_at", sa.DateTime, nullable=False),
+        sa.Column("updated_at", sa.DateTime, nullable=False),
+    )
+
+
 def downgrade():
-    op.drop_table('lead_properties');op.drop_table('interactions');op.drop_table('properties');op.drop_table('leads')
+    op.drop_table("lead_properties")
+    op.drop_table("interactions")
+    op.drop_table("properties")
+    op.drop_table("leads")

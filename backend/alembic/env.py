@@ -6,7 +6,6 @@ from alembic import context
 from app.db.database import Base, database_url
 from app.models.models import Lead, Property, Interaction, LeadProperty
 
-
 config = context.config
 
 # Use the normalized database URL from the central database configuration.
