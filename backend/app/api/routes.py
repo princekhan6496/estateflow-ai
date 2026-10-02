@@ -5,7 +5,10 @@ from sqlalchemy import select, delete
 from app.db.database import get_db
 from app.models.models import Lead, Property, Interaction, LeadProperty
 from app.schemas.schemas import LeadCreate, LeadPatch, InteractionCreate, ChatRequest
-from app.services.priority_service import calculate_priority
+from app.services.priority_service import (
+    calculate_priority,
+    calculate_dynamic_priority,
+)
 from app.services.matching_service import match_property
 from app.services.ai_service import analyze_lead, extract_changes, chat
 from app.services.normalization import normalize_budget, normalize_ai_budget, normalize_requirement_change, ALLOWED_REQUIREMENT_FIELDS
@@ -158,15 +161,40 @@ def interactions(lead_id: int, db: Session = Depends(get_db)):
 
 
 @router.post('/leads/{lead_id}/interactions')
-def add_interaction(lead_id: int, data: InteractionCreate, db: Session = Depends(get_db)):
-    if not db.get(Lead, lead_id):
-        raise HTTPException(404, 'Lead not found')
-    item = Interaction(lead_id=lead_id, **data.model_dump())
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return item
+def add_interaction(
+    lead_id: int,
+    data: InteractionCreate,
+    db: Session = Depends(get_db),
+):
+    lead = db.get(Lead, lead_id)
 
+    if not lead:
+        raise HTTPException(404, "Lead not found")
+
+    # Save the interaction
+    item = Interaction(
+        lead_id=lead_id,
+        **data.model_dump()
+    )
+
+    db.add(item)
+    db.flush()
+
+    # Recalculate dynamic priority using the new interaction
+    lead.lead_score, lead.priority = calculate_dynamic_priority(
+        timeline=lead.timeline,
+        budget=lead.budget,
+        requirement=lead.property_requirement,
+        message=lead.customer_message,
+        interaction_note=item.note,
+    )
+
+    # Save both interaction and updated priority
+    db.commit()
+
+    db.refresh(item)
+
+    return item
 
 @router.post('/leads/{lead_id}/analyze')
 def analyze(lead_id: int, db: Session = Depends(get_db)):
@@ -228,7 +256,13 @@ def apply_changes(lead_id: int, interaction_id: int = Query(...), db: Session = 
     for field, value in normalized_changes:
         setattr(lead, field, value)
 
-    lead.lead_score, lead.priority = calculate_priority(lead.timeline, lead.budget, lead.property_requirement, lead.customer_message)
+    lead.lead_score, lead.priority = calculate_dynamic_priority(
+    timeline=lead.timeline,
+    budget=lead.budget,
+    requirement=lead.property_requirement,
+    message=lead.customer_message,
+    interaction_note=interaction.note,
+)
     recompute(db, lead)
     db.commit()
     db.refresh(lead)

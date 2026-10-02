@@ -285,3 +285,92 @@ def calculate_priority(
         priority = "COLD"
 
     return score, priority
+
+def calculate_dynamic_priority(
+    timeline: str,
+    budget: float,
+    requirement: str,
+    message: str,
+    interaction_note: str | None = None,
+):
+    # First calculate normal lead score
+    base_score, _ = calculate_priority(
+        timeline,
+        budget,
+        requirement,
+        message,
+    )
+
+    if not interaction_note:
+        return base_score, (
+            "HOT" if base_score >= 80
+            else "WARM" if base_score >= 50
+            else "COLD"
+        )
+
+    note = interaction_note.lower().strip()
+
+    # Terminal conditions
+    if any(x in note for x in [
+        "already bought",
+        "already purchased",
+        "bought elsewhere",
+        "purchased elsewhere",
+        "bought another property",
+        "purchased another property",
+        "don't want to buy",
+        "do not want to buy",
+        "not interested anymore",
+        "no longer interested",
+    ]):
+        return 0, "COLD"
+
+    adjustment = 0
+
+    # Negative signals
+    if any(x in note for x in [
+        "better deal",
+        "better offer",
+        "cheaper option",
+        "found a better price",
+    ]):
+        adjustment -= 20
+
+    elif any(x in note for x in [
+        "need more time",
+        "needs more time",
+        "still comparing",
+        "still deciding",
+        "think about it",
+    ]):
+        adjustment -= 10
+
+    # Positive signals
+    elif any(x in note for x in [
+        "ready to buy",
+        "ready to purchase",
+        "schedule a site visit",
+        "want a site visit",
+        "schedule a visit",
+        "shortlisted",
+    ]):
+        adjustment += 15
+
+    elif any(x in note for x in [
+        "interested",
+        "want more details",
+        "send more details",
+        "share details",
+    ]):
+        adjustment += 5
+
+    score = max(0, min(base_score + adjustment, 100))
+
+    if score >= 80:
+        priority = "HOT"
+    elif score >= 50:
+        priority = "WARM"
+    else:
+        priority = "COLD"
+
+    return score, priority
