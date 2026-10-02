@@ -1,99 +1,952 @@
 # EstateFlow AI
 
-A deliberately small AI-powered real-estate sales workspace. It prioritizes inbound leads, stores the current customer profile, performs deterministic property matching, and uses Groq only for explicit AI actions.
+> **AI-powered real-estate sales workspace for salespeople**
 
-## Architecture
-- Frontend: Next.js + TypeScript + Tailwind CSS
-- Backend: FastAPI + SQLAlchemy
-- Database: PostgreSQL
-- AI: Groq API (server-side only)
-- Deployment target: Vercel + Render + Neon/Supabase PostgreSQL
+EstateFlow AI helps real-estate salespeople manage inbound leads, understand customer requirements, prioritize leads dynamically, track interactions, detect requirement changes, match customers with properties, and get contextual AI assistance during the sales process.
 
-## Core rule
-`leads` is the current source of truth. `interactions` is historical context. Requirement changes are proposed by AI and must be confirmed by the salesperson before the lead is updated. Property matching is deterministic and never calls Groq.
+## Live Demo
 
-## AI cost control
-No AI call happens on page load, refresh, GET endpoints, filters, or property matching. Groq is called only for Analyze Lead, contextual assistant messages, requirement-change extraction, and any explicit re-analysis. Analysis is cached in PostgreSQL.
+**Frontend:** https://estateflow-ai-frontend.onrender.com/
 
-## Local setup
-### Backend
+---
+
+# 1. Problem
+
+Real-estate salespeople can receive a large number of leads every day. The challenge is quickly understanding which leads need attention, what each customer wants, which properties match, whether requirements changed, and what the salesperson should do next.
+
+EstateFlow AI treats a lead as an **evolving sales profile** rather than static information.
+
+---
+
+# 2. Solution
+
+EstateFlow AI combines:
+
+- Lead management
+- Dynamic lead prioritization
+- AI-powered lead analysis
+- Contextual lead-specific AI assistant
+- Customer interaction tracking
+- Requirement change detection
+- Human-confirmed requirement updates
+- Deterministic property matching
+- Property recommendation and journey tracking
+
+Main product loop:
+
+```text
+Customer Conversation
+        ↓
+Interaction
+        ↓
+Priority Update
+        ↓
+Requirement Evolution
+        ↓
+Property Rematching
+        ↓
+AI Analysis / Assistance
+        ↓
+Salesperson Action
+        ↓
+Customer Conversation
+        ↓
+       ...
+```
+
+---
+
+# 3. Main Features
+
+## Lead Management
+
+Salespeople can create and manage multiple leads containing:
+
+- Name
+- Location
+- Property requirement
+- BHK
+- Budget
+- Buying timeline
+- Parking requirement
+- Customer message
+- Lead score
+- Lead priority
+
+Priority is represented as:
+
+```text
+HOT / WARM / COLD
+```
+
+Priority can change as new customer interactions are recorded.
+
+## Dynamic Lead Prioritization
+
+Base scoring uses:
+
+- Buying intent
+- Timeline
+- Budget availability
+- Requirement clarity
+- Engagement
+
+Interaction signals dynamically adjust the score:
+
+| Signal | Effect |
+|---|---:|
+| Ready to buy | +15 |
+| Ready to purchase | +15 |
+| Wants site visit | +15 |
+| Shortlisted | +15 |
+| Interested/details | +5 |
+| Still comparing | -10 |
+| Needs more time | -10 |
+| Better deal found | -20 |
+| Doesn't want to buy | COLD |
+| Not interested | COLD |
+| Already purchased elsewhere | COLD |
+
+```text
+Lead Profile → Base Score → Customer Interaction
+→ Dynamic Adjustment → Final Score → HOT/WARM/COLD
+```
+
+---
+
+# 4. AI Lead Analysis
+
+The salesperson explicitly chooses **Analyze Lead** or **Re-analyze**.
+
+AI generates:
+
+- Lead summary
+- Customer intent
+- Key requirements
+- Objections/concerns
+- Recommended next action
+- Suggested customer response
+
+```text
+Lead
+ ↓
+Analyze
+ ↓
+FastAPI
+ ↓
+AI Service
+ ↓
+Groq API
+ ↓
+Structured JSON
+ ↓
+Pydantic Validation
+ ↓
+Database
+ ↓
+Lead Detail
+```
+
+Re-analysis uses the current lead profile, latest interaction history, and current property matches. Previous AI analysis is not used as the source for new analysis.
+
+---
+
+# 5. Contextual AI Assistant
+
+The assistant is specific to the selected lead rather than a general chatbot.
+
+It can answer using:
+
+- Customer requirements
+- Customer intent
+- Objections
+- Interaction history
+- Matched properties
+- Recommended sales action
+
+```text
+Selected Lead
+     ↓
+Lead Context
+     ↓
+Salesperson Question
+     ↓
+Groq
+     ↓
+Contextual Answer
+```
+
+Example:
+
+> "What does the customer want?"
+
+The answer comes from that lead's data.
+
+---
+
+# 6. AI Scope Control
+
+The assistant is restricted to the sales context.
+
+Examples of out-of-scope requests include:
+
+- Programming questions
+- Weather
+- General politics
+- Recipes
+- General mathematics
+- Stock prices
+- General-purpose questions
+
+This prevents the feature from becoming an unrelated general-purpose chatbot.
+
+---
+
+# 7. Requirement Change Detection
+
+Customer requirements can change during conversations.
+
+Example:
+
+```text
+Initial:
+3 BHK
+Budget: ₹90 lakh
+
+Later:
+2, 3 or 4 BHK
+Budget: ₹90 lakh
+Parking mandatory
+```
+
+The salesperson can save the interaction and explicitly request **Extract Requirement Changes**.
+
+```text
+Customer Interaction
+        ↓
+Interaction Saved
+        ↓
+Extract Requirement Changes
+        ↓
+Groq
+        ↓
+Proposed Changes
+```
+
+Possible fields:
+
+- BHK
+- Budget
+- Location
+- Timeline
+- Parking required
+
+---
+
+# 8. Human Confirmation Before Requirement Updates
+
+AI does **not** directly overwrite the lead profile.
+
+```text
+Interaction
+    ↓
+AI extracts proposed changes
+    ↓
+Salesperson reviews
+    ↓
+Confirm / Apply
+    ↓
+Backend validates
+    ↓
+Lead profile updated
+    ↓
+Priority recalculated
+    ↓
+Property matching recalculated
+```
+
+This keeps the salesperson in control of important customer information.
+
+---
+
+# 9. Evolving Lead Profile — Main Differentiator
+
+The current lead profile is the **current source of truth**.
+
+Current state:
+
+```text
+LEADS
+```
+
+Historical information:
+
+```text
+INTERACTIONS
+```
+
+Evolution:
+
+```text
+Initial Requirement
+       ↓
+Customer Interaction
+       ↓
+Requirement Change
+       ↓
+Salesperson Confirmation
+       ↓
+Updated Lead Profile
+       ↓
+New Property Matches
+```
+
+This means the system adapts as the salesperson learns more about the customer.
+
+---
+
+# 10. Deterministic Property Matching
+
+Property matching deliberately **does not use Groq**.
+
+It uses structured requirements and property data:
+
+- Budget
+- BHK
+- Location
+- Parking
+- Timeline
+
+Current scoring:
+
+```text
+Budget       → 30
+BHK          → 25
+Location     → 20
+Parking      → 15
+Timeline     → 10
+```
+
+Only properties meeting:
+
+```text
+match_score >= 45
+```
+
+are stored as matches.
+
+The system also provides reasons and mismatches.
+
+```text
+Lead Requirements
+       +
+Property Data
+       ↓
+Deterministic Matching
+       ↓
+Match Score
+       ↓
+Reasons + Mismatches
+```
+
+### Why deterministic matching?
+
+Property matching is an application/business decision, so explicit rules make it:
+
+- Predictable
+- Explainable
+- Repeatable
+- Easier to debug
+- Independent of LLM variability
+
+The LLM is used for language understanding, while structured application logic handles matching.
+
+---
+
+# 11. Lead ↔ Property Journey
+
+A lead can have multiple properties.
+
+Statuses:
+
+```text
+Recommended
+Shortlisted
+Shared
+Site Visit Scheduled
+Visited
+Interested
+Not Interested
+```
+
+```text
+Lead
+ ↓
+Matched Properties
+ ↓
+Salesperson interacts with property
+ ↓
+Status changes
+ ↓
+Customer journey updated
+```
+
+---
+
+# 12. Customer Journey
+
+The lead detail page tracks:
+
+- Interaction type
+- Interaction note
+- Customer feedback
+- Requirement-change proposals
+- Requirement updates
+- Property journey/status
+
+```text
+Lead
+ ↓
+Interactions
+ ↓
+Customer Feedback
+ ↓
+Requirement Evolution
+ ↓
+Property Matching Changes
+ ↓
+Sales Progress
+```
+
+---
+
+# 13. Property Management
+
+The property database contains:
+
+- Property code
+- Project name
+- Location
+- Price
+- BHK
+- Parking
+- Other property attributes
+
+Salespeople can:
+
+- View properties
+- Search/filter properties
+- View property information
+- Match properties to leads
+
+---
+
+# 14. Dashboard
+
+The dashboard provides a sales pipeline overview:
+
+- HOT leads
+- WARM leads
+- COLD leads
+- NEW leads
+- NEEDS ATTENTION
+- Lead statistics
+- Lead/property information
+
+---
+
+# 15. AI Cost Control
+
+AI is called only for explicit AI actions:
+
+- Analyze Lead
+- Re-analyze Lead
+- Lead Assistant Chat
+- Extract Requirement Changes
+
+No automatic AI calls are required for:
+
+- Page loading
+- GET requests
+- Filtering
+- Property search
+- Normal interaction saving
+- Status changes
+- Applying already-confirmed changes
+- Deterministic rematching
+
+This avoids unnecessary AI API usage.
+
+---
+
+# 16. Graceful AI Failure
+
+If Groq is unavailable, non-AI functionality can still operate:
+
+- Lead CRUD
+- Property CRUD
+- Interactions
+- Priority calculation
+- Property matching
+- Status updates
+- Requirement updates
+
+AI-specific operations fail with an error rather than generating fake responses.
+
+---
+
+# 17. Technology Stack
+
+## Frontend
+
+### Next.js
+Used for the web application and page structure.
+
+### TypeScript
+Used for type-safe frontend development and API/UI data handling.
+
+### Tailwind CSS
+Used for UI styling.
+
+## Backend
+
+### Python
+Used for backend API implementation and business logic.
+
+### FastAPI
+Used to build the REST API and connect the frontend with backend services.
+
+### SQLAlchemy
+Used as the Python ORM/database layer for:
+
+- Database models
+- Queries
+- Lead persistence
+- Property persistence
+- Interaction storage
+- Lead-property relationships
+- Updates
+
+### Alembic
+Used for versioned database schema migrations.
+
+Production database schema is managed through migrations instead of runtime `create_all()`.
+
+### PostgreSQL / Supabase
+Used as the persistent relational database.
+
+Main entities:
+
+```text
+users
+leads
+properties
+interactions
+lead_properties
+```
+
+AI data:
+
+```text
+AI analysis → lead
+AI extracted changes → interaction
+```
+
+### Pydantic
+Used for request/response validation and validating structured AI output.
+
+```text
+Groq
+ ↓
+JSON
+ ↓
+Pydantic Validation
+ ↓
+Application
+```
+
+### Groq
+Used for AI features.
+
+Model:
+
+```text
+openai/gpt-oss-20b
+```
+
+Temperature:
+
+```text
+0
+```
+
+The API key is stored as a backend environment variable and is never exposed to the frontend.
+
+---
+
+# 18. Backend Architecture
+
+```text
+Frontend
+   ↓
+FastAPI API
+   ↓
+Routes
+   ↓
+Services
+   ├── Priority Service
+   ├── Matching Service
+   ├── AI Service
+   └── Normalization
+   ↓
+SQLAlchemy
+   ↓
+PostgreSQL
+```
+
+| Component | Purpose |
+|---|---|
+| FastAPI | REST API |
+| Routes | API request/response handling |
+| Priority Service | Lead scoring and priority |
+| Matching Service | Deterministic property matching |
+| AI Service | Groq integration and AI tasks |
+| Normalization | Normalize/validate requirements |
+| SQLAlchemy | ORM/database access |
+| PostgreSQL | Persistent data |
+| Alembic | Database migrations |
+| Pydantic | Data validation |
+
+---
+
+# 19. AI Architecture
+
+```text
+FastAPI
+   ↓
+AI Service
+   ↓
+Groq API
+   ↓
+Structured JSON
+   ↓
+Pydantic Validation
+   ↓
+Application
+```
+
+AI responsibilities:
+
+```text
+Lead Analysis
+Re-analysis
+Contextual Assistant
+Requirement Change Extraction
+```
+
+Deterministic responsibilities:
+
+```text
+Priority Calculation
+Property Matching
+Match Score
+Database Updates
+Status Changes
+Rematching
+```
+
+This separation keeps important business logic predictable.
+
+---
+
+# 20. Overall System Architecture
+
+```text
+                  ┌─────────────────────────┐
+                  │       Next.js            │
+                  │  TypeScript + Tailwind   │
+                  └────────────┬────────────┘
+                               │
+                            REST API
+                               │
+                               ▼
+                  ┌─────────────────────────┐
+                  │        FastAPI           │
+                  │         Backend          │
+                  └────────────┬────────────┘
+                               │
+              ┌────────────────┼────────────────┐
+              │                │                │
+              ▼                ▼                ▼
+       ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+       │  Priority   │  │  Matching   │  │ AI Service  │
+       │  Service    │  │  Service    │  │             │
+       └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+              │                │                │
+              └────────────────┼────────────────┘
+                               │
+                               ▼
+                       ┌──────────────┐
+                       │  SQLAlchemy  │
+                       └──────┬───────┘
+                              │
+                              ▼
+                       ┌──────────────┐
+                       │ PostgreSQL   │
+                       └──────────────┘
+
+AI Service ────────────────► Groq API
+```
+
+---
+
+# 21. Complete Lead Flow
+
+```text
+New Lead
+   ↓
+Lead Created
+   ↓
+Base Priority Calculated
+   ↓
+Property Matching
+   ↓
+Lead Appears on Dashboard
+   ↓
+Salesperson Opens Lead
+   ↓
+Analyze Lead [Optional]
+   ↓
+AI Analysis
+   ↓
+Salesperson Contacts Customer
+   ↓
+Interaction Added
+   ↓
+Dynamic Priority Recalculated
+   ↓
+Customer Requirement Changes?
+   │
+   ├── NO
+   │    ↓
+   │  Continue Sales Process
+   │
+   └── YES
+        ↓
+     Extract Changes
+        ↓
+     AI Proposed Changes
+        ↓
+     Salesperson Confirms
+        ↓
+     Update Lead
+        ↓
+     Recalculate Priority
+        ↓
+     Recalculate Property Matches
+```
+
+---
+
+# 22. Deployment Architecture
+
+```text
+                     Internet
+                        │
+             ┌──────────┴──────────┐
+             ▼                     ▼
+      ┌─────────────┐       ┌─────────────┐
+      │   Render    │       │   Render    │
+      │  Frontend   │──────►│   Backend   │
+      │   Next.js   │ REST  │   FastAPI   │
+      └─────────────┘       └──────┬──────┘
+                                   │
+                         ┌─────────┴─────────┐
+                         ▼                   ▼
+                  ┌─────────────┐     ┌─────────────┐
+                  │ PostgreSQL  │     │  Groq API   │
+                  │  Supabase   │     │     AI      │
+                  └─────────────┘     └─────────────┘
+```
+
+Deployment:
+
+```text
+Frontend → Render
+Backend  → Render
+Database → PostgreSQL / Supabase
+AI       → Groq
+```
+
+---
+
+# 23. What Was Added Beyond the Basic Assignment
+
+The project goes beyond basic lead intake + AI analysis + chatbot functionality.
+
+## 1. Evolving Lead Profile
+
+Customer requirements can change over time.
+
+The current profile is updated only after salesperson confirmation, while historical interactions are retained.
+
+## 2. Dynamic Lead Priority
+
+Lead priority changes based on actual customer interactions instead of remaining fixed after lead creation.
+
+## 3. Requirement Change Detection
+
+AI can identify structured changes from an unstructured salesperson interaction.
+
+## 4. Human-in-the-loop Confirmation
+
+AI proposes changes, but the salesperson decides whether to apply them.
+
+## 5. Dynamic Property Rematching
+
+When the confirmed requirements change, property matches are recalculated.
+
+## 6. Deterministic and Explainable Matching
+
+Property matching uses explicit rules instead of asking an LLM to invent a match percentage.
+
+## 7. Property Journey Tracking
+
+A salesperson can track the relationship between a lead and a property through statuses such as Recommended, Shortlisted, Shared, Site Visit Scheduled, Visited, Interested, and Not Interested.
+
+## 8. AI Scope Control
+
+The contextual assistant is restricted to the selected lead's sales context rather than functioning as an unrestricted chatbot.
+
+---
+
+# 24. Complete Product Differentiator
+
+Traditional lead management:
+
+```text
+Static Lead Information
+        ↓
+Property Recommendation
+```
+
+EstateFlow AI:
+
+```text
+Evolving Lead Profile
+        +
+Dynamic Priority
+        +
+Dynamic Property Matching
+        +
+Contextual AI Assistance
+        ↓
+Salesperson Action
+```
+
+The core idea is:
+
+> **A real-estate lead is not static. Its priority, requirements, property matches, and recommended sales actions can change as the salesperson learns more from the customer.**
+
+---
+
+# 25. Local Development
+
+## Backend
+
 ```bash
 cd backend
+
 python -m venv .venv
-# Windows: .venv\\Scripts\\activate
-# macOS/Linux: source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
+
+Configure environment variables:
+
+```env
+DATABASE_URL=postgresql://...
+GROQ_API_KEY=...
+```
+
+Run migrations:
+
+```bash
 alembic upgrade head
-copy .env.example .env  # Windows
-# or cp .env.example .env
-# configure DATABASE_URL and GROQ_API_KEY
+```
+
+Seed demo data:
+
+```bash
 python seed.py
+```
+
+Start the backend:
+
+```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Database URL / psycopg v3
-The user-facing `DATABASE_URL` remains the standard PostgreSQL form:
-```env
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE
-```
-The backend normalizes a leading `postgresql://` scheme internally to `postgresql+psycopg://` before SQLAlchemy creates the engine. This keeps the `.env` format simple while explicitly selecting the installed psycopg v3 driver. Alembic uses the same normalized URL, and `seed.py` uses the same `SessionLocal`, so there is one database configuration path.
+## Frontend
 
-The hostname is never hardcoded; it always comes from `DATABASE_URL`. A DNS error such as `getaddrinfo failed` is therefore a separate hostname/network problem, not a driver-selection problem. The application does not fall back to SQLite or fake data.
-
-To verify the driver locally:
-```bash
-python -c "import psycopg; print(psycopg.__version__)"
-```
-
-To verify migrations with the standard URL:
-```powershell
-$env:PYTHONPATH="."
-alembic upgrade head
-```
-
-### Frontend
 ```bash
 cd frontend
 npm install
-copy .env.example .env.local  # Windows
-# or cp .env.example .env.local
 npm run dev
 ```
 
-Open http://localhost:3000.
+Configure the frontend API URL according to the project's environment configuration.
 
-## Deployment
-1. Create PostgreSQL on Neon or Supabase and set the backend `DATABASE_URL`.
-2. Deploy `backend` to Render as a Python web service with start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-3. Set `GROQ_API_KEY`, `GROQ_MODEL`, and `FRONTEND_URL` in Render.
-4. Before seeding a production database, run `alembic upgrade head`; then run `python seed.py` once. The seed script does not call Groq.
-5. Deploy `frontend` to Vercel and set `NEXT_PUBLIC_API_URL` to the Render `/api` URL.
-6. Set `FRONTEND_URL` on Render to the exact Vercel origin.
+---
 
-## AI usage disclosure
-AI assistance may be used during development for code generation, debugging, UI iteration, and architecture discussion. The application itself uses Groq for lead analysis, contextual assistance, requirement-change extraction, and response suggestions.
+# 26. Known Limitations
 
-## Known limitations
-- Authentication/user roles are intentionally omitted for assignment scope.
-- Inventory is seeded rather than live.
-- Timeline matching is intentionally simple and transparent.
-- No WhatsApp, email, payments, booking, scraping, maps, RAG, vector database, background AI worker, or real-time notification system.
+- AI functionality depends on Groq API availability and limits.
+- AI output is limited to the information available in the lead context.
+- Property matching depends on the structured property attributes stored in the database.
+- The project is a focused salesperson workspace, not a complete enterprise CRM, booking, payment, or documentation platform.
 
-## Final hardening notes
+---
 
-- Lead and property monetary values are stored canonically as INR numeric values; the UI formats them as lakh for readability.
-- Seed data is deterministic, idempotent by stable demo identifiers, and recomputes `lead_properties` without any Groq calls.
-- Alembic is the production schema authority; runtime `create_all()` is not used.
-- Property matching is deterministic and does not call Groq. Timeline points are awarded only when possession can be compared with the stated timeline.
-- Requirement changes use a strict field whitelist and type normalization before database updates.
-- The contextual assistant has a deterministic guard for obviously unrelated requests and a strict lead-context system prompt for ambiguous requests.
-- AI failures return controlled errors; the application does not fabricate fallback AI answers.
-- Property relationship status updates are database-only operations.
-- AI calls occur only on explicit Analyze/Re-analyze, Assistant, and Requirement Change actions. Normal page loads, searches, interactions, status updates, and matching do not call Groq.
+# 27. AI Usage
 
-## Final acceptance behavior
-- Chat responses are validated through a strict `ChatResponse` Pydantic contract; malformed assistant output is rejected rather than sent to the UI.
-- AI failures use inline retry states in the lead workspace; no fake/canned AI result is substituted.
-- `leads.ai_analyzed_at` records the timestamp of the latest successful explicit analysis. Apply migration `0003_ai_analyzed_at` before running the app against an existing database.
-- The contextual assistant uses two-layer scope protection: a deterministic obvious-out-of-scope guard followed by a strict lead-context Groq prompt. No separate AI classifier is used.
-- Property search, matching, interactions, relationship-status changes, and requirement-change application are database/deterministic operations and do not call Groq.
+AI is used inside the application for:
+
+1. Lead analysis
+2. Lead re-analysis
+3. Contextual lead assistant
+4. Requirement-change extraction
+
+AI coding assistance used during development should be disclosed separately according to the assignment requirements.
+
+---
+
+# 28. Project Summary
+
+EstateFlow AI connects lead management, AI language understanding, deterministic business logic, and property matching into one salesperson workflow.
+
+```text
+Inbound Lead
+     ↓
+AI Understanding
+     ↓
+Dynamic Priority
+     ↓
+Sales Interaction
+     ↓
+Requirement Evolution
+     ↓
+Property Rematching
+     ↓
+Contextual AI Assistance
+     ↓
+Salesperson Action
+     ↓
+Customer Conversation
+```
+
+The system uses AI where natural-language understanding is valuable and deterministic backend logic where predictable business decisions are required.
