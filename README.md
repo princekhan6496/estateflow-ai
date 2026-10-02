@@ -780,7 +780,7 @@ AI       → Groq
 
 ---
 
-# 23. What Was Added Beyond the Basic Assignment
+# 23. Key Product Differentiators Features
 
 The project goes beyond basic lead intake + AI analysis + chatbot functionality.
 
