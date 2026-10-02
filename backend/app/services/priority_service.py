@@ -10,5 +10,5 @@ def calculate_priority(timeline: str, budget: float, requirement: str, message: 
     if any(x in message.lower() for x in strong): score += 20
     if "parking" in message.lower() or "location" in message.lower(): score += 5
     if score >= 80: return min(score, 100), "HOT"
-    if score >= 50: return score, "WARM"
+    if score >= 65: return score, "WARM"
     return score, "COLD"
