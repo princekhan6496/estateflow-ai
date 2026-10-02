@@ -1,5 +1,104 @@
-'use client'
-import {useEffect,useState} from 'react';import {useParams} from 'next/navigation';import Shell from '../../../components/Shell';import Badge from '../../../components/Badge';import {api} from '../../../lib/api';import Link from 'next/link'
-import {formatINR} from '../../../lib/format'
-export default function PropertyDetails(){const {id}=useParams();const [p,setP]=useState<any>();const [leads,setLeads]=useState<any[]>([]);useEffect(()=>{Promise.all([api(`/properties/${id}`),api(`/properties/${id}/matching-leads`)]).then(([a,b])=>{setP(a);setLeads(b)})},[id]);if(!p)return <Shell><div className="p-10 muted">Loading property...</div></Shell>;return <Shell><div className="px-6 md:px-10 py-8 max-w-5xl"><div className="surface rounded-xl p-6"><div className="label">{p.property_code}</div><div className="flex justify-between gap-4 mt-2"><div><h1 className="text-2xl font-semibold">{p.project_name}</h1><p className="text-sm muted mt-1">{p.developer} · {p.location}</p></div><div className="text-right"><div className="text-xl font-semibold">{formatINR(p.price)}</div><div className="text-xs muted">{p.availability}</div></div></div><div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-7 text-sm"><Stat t="BHK" v={p.bhk}/><Stat t="Carpet" v={`${p.carpet_area} sq ft`}/><Stat t="Parking" v={p.parking_available?'Available':'No'}/><Stat t="Floor" v={`${p.floor}/${p.total_floors}`}/><Stat t="Possession" v={p.possession_date}/></div><p className="text-sm leading-6 mt-7 max-w-2xl">{p.description}</p><div className="flex flex-wrap gap-2 mt-4">{p.amenities?.map((x:string)=><span className="text-xs px-3 py-1.5 bg-[#f5f5f2] rounded-full" key={x}>{x}</span>)}</div></div><section className="mt-7"><h2 className="font-semibold">Matching leads</h2><p className="text-xs muted mt-1">The same deterministic engine works in both directions.</p><div className="surface rounded-xl mt-3 overflow-hidden">{leads.map(r=><Link href={`/leads/${r.lead.id}`} key={r.id} className="flex items-center gap-4 px-5 py-4 border-b last:border-0 hover:bg-[#fafaf8]"><div className="font-medium text-sm flex-1">{r.lead.name}<div className="text-xs muted">{r.lead.location} · {r.lead.bhk?.join(', ')} BHK · {formatINR(r.lead.budget)}</div></div><Badge value={r.lead.priority}/><div className="font-semibold text-sm">{r.match_score}%</div><div className="text-xs">{r.status}</div></Link>)}{!leads.length&&<div className="p-5 text-sm muted">No matching leads yet.</div>}</div></section></div></Shell>}
-function Stat({t,v}:{t:string,v:any}){return <div><div className="label">{t}</div><div className="mt-1">{v}</div></div>}
+"use client";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Shell from "../../../components/Shell";
+import Badge from "../../../components/Badge";
+import { api } from "../../../lib/api";
+import Link from "next/link";
+import { formatINR } from "../../../lib/format";
+export default function PropertyDetails() {
+  const { id } = useParams();
+  const [p, setP] = useState<any>();
+  const [leads, setLeads] = useState<any[]>([]);
+  useEffect(() => {
+    Promise.all([
+      api(`/properties/${id}`),
+      api(`/properties/${id}/matching-leads`),
+    ]).then(([a, b]) => {
+      setP(a);
+      setLeads(b);
+    });
+  }, [id]);
+  if (!p)
+    return (
+      <Shell>
+        <div className="p-10 muted">Loading property...</div>
+      </Shell>
+    );
+  return (
+    <Shell>
+      <div className="px-6 md:px-10 py-8 max-w-5xl">
+        <div className="surface rounded-xl p-6">
+          <div className="label">{p.property_code}</div>
+          <div className="flex justify-between gap-4 mt-2">
+            <div>
+              <h1 className="text-2xl font-semibold">{p.project_name}</h1>
+              <p className="text-sm muted mt-1">
+                {p.developer} · {p.location}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-xl font-semibold">{formatINR(p.price)}</div>
+              <div className="text-xs muted">{p.availability}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-7 text-sm">
+            <Stat t="BHK" v={p.bhk} />
+            <Stat t="Carpet" v={`${p.carpet_area} sq ft`} />
+            <Stat t="Parking" v={p.parking_available ? "Available" : "No"} />
+            <Stat t="Floor" v={`${p.floor}/${p.total_floors}`} />
+            <Stat t="Possession" v={p.possession_date} />
+          </div>
+          <p className="text-sm leading-6 mt-7 max-w-2xl">{p.description}</p>
+          <div className="flex flex-wrap gap-2 mt-4">
+            {p.amenities?.map((x: string) => (
+              <span
+                className="text-xs px-3 py-1.5 bg-[#f5f5f2] rounded-full"
+                key={x}
+              >
+                {x}
+              </span>
+            ))}
+          </div>
+        </div>
+        <section className="mt-7">
+          <h2 className="font-semibold">Matching leads</h2>
+          <p className="text-xs muted mt-1">
+            The same deterministic engine works in both directions.
+          </p>
+          <div className="surface rounded-xl mt-3 overflow-hidden">
+            {leads.map((r) => (
+              <Link
+                href={`/leads/${r.lead.id}`}
+                key={r.id}
+                className="flex items-center gap-4 px-5 py-4 border-b last:border-0 hover:bg-[#fafaf8]"
+              >
+                <div className="font-medium text-sm flex-1">
+                  {r.lead.name}
+                  <div className="text-xs muted">
+                    {r.lead.location} · {r.lead.bhk?.join(", ")} BHK ·{" "}
+                    {formatINR(r.lead.budget)}
+                  </div>
+                </div>
+                <Badge value={r.lead.priority} />
+                <div className="font-semibold text-sm">{r.match_score}%</div>
+                <div className="text-xs">{r.status}</div>
+              </Link>
+            ))}
+            {!leads.length && (
+              <div className="p-5 text-sm muted">No matching leads yet.</div>
+            )}
+          </div>
+        </section>
+      </div>
+    </Shell>
+  );
+}
+function Stat({ t, v }: { t: string; v: any }) {
+  return (
+    <div>
+      <div className="label">{t}</div>
+      <div className="mt-1">{v}</div>
+    </div>
+  );
+}
